@@ -1,46 +1,7 @@
+Libraries used:
 
-This directory is intended for project specific (private) libraries.
-PlatformIO will compile them to static libraries and link into executable file.
+Arduino_GFX_Library.h -> Standard library provided by arduino, provides SPI integration with OLED TFT Screen. Faster than other libraries tried, however a color bitmap draw function not available...
 
-The source code of each library should be placed in a an own separate directory
-("lib/your_library_name/[here are source files]").
+ELMduino.h -> Library created by PowerBroker2 to query the vehicle's CAN bus and ask for PID's https://github.com/PowerBroker2/ELMduino. 
 
-For example, see a structure of the following two libraries `Foo` and `Bar`:
-
-|--lib
-|  |
-|  |--Bar
-|  |  |--docs
-|  |  |--examples
-|  |  |--src
-|  |     |- Bar.c
-|  |     |- Bar.h
-|  |  |- library.json (optional, custom build options, etc) https://docs.platformio.org/page/librarymanager/config.html
-|  |
-|  |--Foo
-|  |  |- Foo.c
-|  |  |- Foo.h
-|  |
-|  |- README --> THIS FILE
-|
-|- platformio.ini
-|--src
-   |- main.c
-
-and a contents of `src/main.c`:
-```
-#include <Foo.h>
-#include <Bar.h>
-
-int main (void)
-{
-  ...
-}
-
-```
-
-PlatformIO Library Dependency Finder will find automatically dependent
-libraries scanning project source files.
-
-More information about PlatformIO Library Dependency Finder
-- https://docs.platformio.org/page/librarymanager/ldf.html
+BluetoothSerial.h -> Standard library again for providing BT protocal between ELM device and ESP32. This could be changed to to a more standard UART wired connection which may or may not help with the PID misses. I don't have a wired ELM device to test this on however, plus more wires coming from that part of the car might not be incredibly safe...
