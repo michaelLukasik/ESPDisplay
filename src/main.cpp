@@ -32,20 +32,23 @@ const uint8_t *buns[] = {
     bun1, bun2, bun3, bun4, bun5, bun6, bun7, bun8, bun9, bun10, 
 };
 
-TaskHandle_t cycleBunnies;
+TaskHandle_t cycleScreen;
 String MACadd = "66:1E:32:F8:C3:A1"; 
 uint8_t address[6] = { 0x66, 0x1E, 0x32, 0xF8, 0xC3, 0xA1 };
 
 
 uint32_t rpm  = 0;
 float oilTemp = 0;
-float relativePedalPosition = 0;
+
+volatile float relativePedalPosition = 0;
+float tempRelativePedalPosition = 0;
+
 volatile float MPH = 0;
 float tempMPH = 0;
 
 
 //task1: Cycle through bunny images
-void cycleBunniesCode ( void *pvParameters ){
+void cycleScreenCode ( void *pvParameters ){
 for(;;){
   if (bunFrame > 9) {bunFrame = 0;}
   // Bunny Display
@@ -56,13 +59,22 @@ for(;;){
   else if (MPH > 65) { delay(10);}
   else { delay(10); }
   bunFrame +=1;
-  // Update Mph with the Bunnys
+  
+  // Update Mph next to the bun
   display.fillRect(70, 273 , 170 , 30, BLACK);
   display.setCursor(70,282);
   display.setTextSize(3);
   display.setTextColor(GREEN);
   display.print(F("MPH: "));
   display.print(int(MPH));
+
+  // Update pedal position value
+  display.fillRect(70, 233 , 170 , 30, BLACK);
+  display.setCursor(70,242);
+  display.setTextSize(2);
+  display.setTextColor(GREEN);
+  display.print(F("Pedal: "));
+  display.print(int(relativePedalPosition));
 
   } 
 }
@@ -78,12 +90,12 @@ void setup()
   display.print("Connecting!!!");
 
   xTaskCreatePinnedToCore(
-      cycleBunniesCode, /* Function to implement the task */
-      "cycleBunnies", /* Name of the task */
+      cycleScreenCode, /* Function to implement the task */
+      "cycleScreen", /* Name of the task */
       10000,  /* Stack size in words */
       NULL,  /* Task input parameter */
       0,  /* Priority of the task */
-      &cycleBunnies,  /* Task handle. */
+      &cycleScreen,  /* Task handle. */
       0); /* Core where the task should run */ 
 
   DEBUG_PORT.begin(115200);
@@ -148,14 +160,9 @@ void loop()
 
   if (myELM327.nb_rx_state == ELM_SUCCESS){
     MPH = tempMPH;
-    //Serial.println(F("MPH INSIDE PID CHECK: "));
-    //Serial.println(MPH);
-
-    
   }
   else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
     Serial.println(F("nb_rx_state != ELM Getting Msg "));
-    //myELM327.printError();
   }
 
 // ==================== Oil Temp Stuff ===================== //
@@ -170,15 +177,12 @@ void loop()
 //  }
 
 // ==================== Relative Pedal Position Stuff ===================== //
-//  float tempRelativePedalPosition = myELM327.relativePedalPos();
-//  
-//  if (myELM327.nb_rx_state == ELM_SUCCESS){
-//   relativePedalPosition = (float)tempRelativePedalPosition;
-//    Serial.print("Relative Pedal Position: "); Serial.println(relativePedalPosition);
-//  }
-//  else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
-//  //  myELM327.printError();
-//  }
-
-  delay(10);
+  tempRelativePedalPosition = myELM327.relativePedalPos();
+  
+  if (myELM327.nb_rx_state == ELM_SUCCESS){
+   relativePedalPosition = tempRelativePedalPosition;
+  }
+  else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
+    Serial.println(F("nb_rx_state != ELM Getting Msg "));
+  }
 }
