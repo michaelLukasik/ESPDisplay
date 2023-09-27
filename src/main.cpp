@@ -40,10 +40,12 @@ uint8_t address[6] = { 0x66, 0x1E, 0x32, 0xF8, 0xC3, 0xA1 };
 uint32_t rpm  = 0;
 float oilTemp = 0;
 
-volatile float relativePedalPosition = 0;
-float tempRelativePedalPosition = 0;
+volatile float relativeThrottle = 0;
+volatile float cachedRelativeThrottle = -1;
+float tempRelativeThrottle = 0;
 
 volatile float MPH = 0;
+volatile float cachedMPH = -1;
 float tempMPH = 0;
 
 
@@ -61,34 +63,32 @@ for(;;){
   bunFrame +=1;
   
   // Update Mph next to the bun
-  display.fillRect(70, 273 , 170 , 30, BLACK);
-  display.setCursor(70,282);
-  display.setTextSize(3);
-  display.setTextColor(GREEN);
-  display.print(F("MPH: "));
-  display.print(int(MPH));
-
-  // Update pedal position value
-  display.fillRect(70, 233 , 170 , 30, BLACK);
-  display.setCursor(70,242);
-  display.setTextSize(2);
-  display.setTextColor(GREEN);
-  display.print(F("Pedal: "));
-  display.print(int(relativePedalPosition));
-
-  } 
+  if(cachedMPH != MPH){
+    display.fillRect(70, 273 , 170 , 30, BLACK);
+    display.setCursor(75,282);
+    display.setTextSize(3);
+    display.setTextColor(GREEN);
+    display.print(F("MPH: "));
+    display.print(int(MPH));
+    cachedMPH = MPH;
+  }
+  // Update pedal position value, bar(X=5,Y=50, H=200, W=30) fills from bottom with Green
+  if(cachedRelativeThrottle != relativeThrottle){
+    display.fillRect(5, 50 , 30 , 2*(100 - relativeThrottle), BLACK);
+    display.fillRect(5, 50 + 2*(100 - relativeThrottle), 30 , (200*relativeThrottle)/100 , GREEN); // Draw Rectangle as a percentage of how pressed the pedal is
+    display.drawRect(5, 50 , 30 , 200, RED);
+    display.setCursor(15,140);
+    display.setTextSize(1);
+    display.setTextColor(PINK);
+    display.print(int(relativeThrottle));
+    cachedRelativeThrottle = relativeThrottle;
+    }
+  } // End of core 0 loop code
 }
 
 void setup()
 {
-  /// Set up Display ////
-  display.begin();
-  display.fillScreen(BLACK);
-  display.setCursor(20, 20);
-  display.setTextSize(2);
-  display.setTextColor(WHITE);
-  display.print("Connecting!!!");
-
+  DEBUG_PORT.begin(115200);
   xTaskCreatePinnedToCore(
       cycleScreenCode, /* Function to implement the task */
       "cycleScreen", /* Name of the task */
@@ -98,7 +98,23 @@ void setup()
       &cycleScreen,  /* Task handle. */
       0); /* Core where the task should run */ 
 
-  DEBUG_PORT.begin(115200);
+  /// Set up Display ////
+  display.begin();
+  display.fillScreen(BLACK);
+  display.setCursor(20, 20);
+  display.setTextSize(2);
+  display.setTextColor(WHITE);
+  display.print("Connecting!!!");
+
+  // Set up pedal bar
+  display.setTextSize(1);
+  display.setTextColor(PINK);
+  display.setCursor(15,135);
+  display.print(int(relativeThrottle));
+  display.drawRect(5, 50 , 30 , 200, RED);
+  display.setCursor(5,255);
+  display.print(F("Thr.")); 
+
   ELM_PORT.begin("ml.ESP32",true );
   
   if (!ELM_PORT.connect(address))
@@ -176,13 +192,14 @@ void loop()
 //    //myELM327.printError();
 //  }
 
-// ==================== Relative Pedal Position Stuff ===================== //
-  tempRelativePedalPosition = myELM327.relativePedalPos();
+// ==================== Relative Throttle Stuff ===================== //
+  tempRelativeThrottle = myELM327.relativeThrottle();
   
   if (myELM327.nb_rx_state == ELM_SUCCESS){
-   relativePedalPosition = tempRelativePedalPosition;
+   relativeThrottle = tempRelativeThrottle;
   }
   else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
     Serial.println(F("nb_rx_state != ELM Getting Msg "));
   }
 }
+
