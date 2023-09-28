@@ -26,9 +26,9 @@ ELM327 myELM327;
 
 
 // Counter for bunny images :0) //
-uint8_t bunFrame = 0;
+int bunFrame = 0;
 
-const uint8_t *buns[] = {
+uint16_t* buns[] = {
     bun1, bun2, bun3, bun4, bun5, bun6, bun7, bun8, bun9, bun10, 
 };
 
@@ -48,13 +48,17 @@ volatile float MPH = 0;
 volatile float cachedMPH = -1;
 float tempMPH = 0;
 
+volatile float EFR = 0; // Engine Fuel Rate
+volatile float cachedEFR = -1;
+float tempEFR = 0;
+
 
 //task1: Cycle through bunny images
 void cycleScreenCode ( void *pvParameters ){
 for(;;){
   if (bunFrame > 9) {bunFrame = 0;}
   // Bunny Display
-  display.drawBitmap(0, 273, buns[bunFrame], 64, 47, WHITE, BLACK);
+  display.draw16bitBeRGBBitmap(0, 273, buns[bunFrame], 64, 47);
   if (MPH <= 25) { delay(250);}
   else if (MPH > 25 and MPH <= 40) { delay(150);}
   else if (MPH > 40 and MPH <= 65) { delay(50);}
@@ -72,7 +76,7 @@ for(;;){
     display.print(int(MPH));
     cachedMPH = MPH;
   }
-  // Update pedal position value, bar(X=5,Y=50, H=200, W=30) fills from bottom with Green
+  // Update pedal position value, bar (X=5,Y=50, H=200, W=30) fills from bottom with Green
   if(cachedRelativeThrottle != relativeThrottle){
     display.fillRect(5, 50 , 30 , 2*(100 - relativeThrottle), BLACK);
     display.fillRect(5, 50 + 2*(100 - relativeThrottle), 30 , (200*relativeThrottle)/100 , GREEN); // Draw Rectangle as a percentage of how pressed the pedal is
@@ -83,6 +87,10 @@ for(;;){
     display.print(int(relativeThrottle));
     cachedRelativeThrottle = relativeThrottle;
     }
+  if(cachedRelativeThrottle != relativeThrottle){
+    
+  
+  }
   } // End of core 0 loop code
 }
 
@@ -201,5 +209,17 @@ void loop()
   else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
     Serial.println(F("nb_rx_state != ELM Getting Msg "));
   }
+
+
+// ==================== Fuel Rate Stuff ===================== //
+  tempEFR = myELM327.fuelRate();
+  
+  if (myELM327.nb_rx_state == ELM_SUCCESS){
+   EFR = tempEFR;
+  }
+  else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
+    Serial.println(F("nb_rx_state != ELM Getting Msg "));
+  }
+
 }
 
