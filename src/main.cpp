@@ -87,10 +87,18 @@ for(;;){
     display.print(int(relativeThrottle));
     cachedRelativeThrottle = relativeThrottle;
     }
-  if(cachedRelativeThrottle != relativeThrottle){
-    
-  
-  }
+  // Update Fuel Rate, this needs some testing
+  if(cachedEFR != EFR){
+  display.fillRect(40, 233 , 200 , 30, BLACK);
+  display.setCursor(45,242);
+  display.setTextSize(3);
+  display.setTextColor(LIGHTGREY);
+  display.print(F("EFR: "));
+  display.print(EFR,1);
+  display.setTextSize(1);
+  display.print(F("l/h"));  
+  cachedEFR = EFR;
+    }
   } // End of core 0 loop code
 }
 
@@ -123,10 +131,21 @@ void setup()
   display.setCursor(5,255);
   display.print(F("Thr.")); 
 
-  ELM_PORT.begin("ml.ESP32",true );
+  //Set up EFR area 
+  //display.drawRect(40, 233 , 200 , 32, RED);
+  display.fillRect(40, 233 , 200 , 30, BLACK);
+  display.setCursor(45,242);
+  display.setTextSize(3);
+  display.setTextColor(LIGHTGREY);
+  display.print(F("EFR: "));
+  display.print(EFR,1);
+  display.setTextSize(1);
+  display.print(F("l/h"));  
+
+
+  ELM_PORT.begin("ml.ESP32",true);
   
-  if (!ELM_PORT.connect(address))
-  {
+  if (!ELM_PORT.connect(address)){
     DEBUG_PORT.println("Couldn't connect to OBD scanner - Phase 1");
     display.fillRect(0, 0 , 240 , 40, BLACK);
     display.setCursor(20, 40);
@@ -144,8 +163,7 @@ void setup()
     while(1);
   }
 
-  if (!myELM327.begin(ELM_PORT, 0, 1000))
-  {
+  if (!myELM327.begin(ELM_PORT, 0, 1000)){
     Serial.println("Couldn't connect to OBD scanner - Phase 2");
     display.setCursor(20, 40);
     display.setTextSize(2);
@@ -167,7 +185,7 @@ void setup()
 
 void loop()
 {
-  // ==================== Engine RPM Stuff ===================== //
+  // ==================== Engine RPM Stuff ===================== //  Lets do some red line stuff
 //  uint32_t tempRPM = myELM327.rpm();
 ///
 //  if (myELM327.nb_rx_state == ELM_SUCCESS){
@@ -216,10 +234,10 @@ void loop()
   
   if (myELM327.nb_rx_state == ELM_SUCCESS){
    EFR = tempEFR;
+   Serial.println(tempEFR);
   }
   else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
-    Serial.println(F("nb_rx_state != ELM Getting Msg "));
+    Serial.println(F("EFR ERROR "));
   }
-
 }
 
