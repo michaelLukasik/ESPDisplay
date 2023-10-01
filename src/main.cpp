@@ -3,6 +3,7 @@
 #include "bunArraysColor.h"
 #include <Arduino_GFX_Library.h>
 
+
 BluetoothSerial SerialBT;
 #define ELM_PORT   SerialBT
 #define DEBUG_PORT Serial
@@ -15,7 +16,7 @@ BluetoothSerial SerialBT;
 #define TFT_DC     4
 #define TFT_RESET  2
 
- // 1064181 bytes
+
 /// Display Settings 
 // Display = ILI9341  ---> https://github.com/adafruit/Adafruit_ILI9341/blob/master/Adafruit_ILI9341.h
 // Dimensions = 240px L  x 320px H
@@ -24,7 +25,6 @@ Arduino_ILI9341 display = Arduino_ILI9341(&bus, TFT_RESET);
 
 ELM327 myELM327;
 
-
 // Counter for bunny images :0) //
 int bunFrame = 0;
 
@@ -32,8 +32,7 @@ uint16_t* buns[] = {
     bun1, bun2, bun3, bun4, bun5, bun6, bun7, bun8, bun9, bun10, 
 };
 
-TaskHandle_t cycleScreen;
-String MACadd = "66:1E:32:F8:C3:A1"; 
+TaskHandle_t cycleScreen; 
 uint8_t address[6] = { 0x66, 0x1E, 0x32, 0xF8, 0xC3, 0xA1 };
 
 
@@ -53,9 +52,10 @@ volatile float cachedEFR = -1;
 float tempEFR = 0;
 
 
-//task1: Cycle through bunny images
+//task1: Cycle through Screen Updates
 void cycleScreenCode ( void *pvParameters ){
 for(;;){
+
   if (bunFrame > 9) {bunFrame = 0;}
   // Bunny Display
   display.draw16bitBeRGBBitmap(0, 273, buns[bunFrame], 64, 47);
@@ -120,7 +120,7 @@ void setup()
   display.setCursor(20, 20);
   display.setTextSize(2);
   display.setTextColor(WHITE);
-  display.print("Connecting!!!");
+  display.print(F("Connecting!!!"));
 
   // Set up pedal bar
   display.setTextSize(1);
@@ -146,40 +146,40 @@ void setup()
   ELM_PORT.begin("ml.ESP32",true);
   
   if (!ELM_PORT.connect(address)){
-    DEBUG_PORT.println("Couldn't connect to OBD scanner - Phase 1");
+    DEBUG_PORT.println(F("Couldn't connect to OBD scanner - Phase 1"));
     display.fillRect(0, 0 , 240 , 40, BLACK);
     display.setCursor(20, 40);
     display.setTextSize(2);
     display.setTextColor(WHITE);
-    display.print("Not connected (Code 1)");
+    display.print(F("Not connected (Code 1)"));
     display.setCursor(20, 80);
     display.setTextSize(2);
     display.setTextColor(WHITE);
-    display.print("Reset the module dumbass");
+    display.print(F("Reset the module dumbass"));
     display.setCursor(70,282);
     display.setTextSize(3);
     display.setTextColor(RED);
-    display.print("MPH: N/A ");
+    display.print(F("MPH: N/A "));
     while(1);
   }
 
   if (!myELM327.begin(ELM_PORT, 0, 1000)){
-    Serial.println("Couldn't connect to OBD scanner - Phase 2");
+    Serial.println(F("Couldn't connect to OBD scanner - Phase 2"));
     display.setCursor(20, 40);
     display.setTextSize(2);
     display.setTextColor(WHITE);
-    display.print("Not connected (Code 2)");
+    display.print(F("Not connected (Code 2)"));
     display.setCursor(20, 80);
     display.setTextSize(2);
     display.setTextColor(WHITE);
-    display.print("Reset the module dumbass");
+    display.print(F("Reset the module dumbass"));
     while (1);
   }
   display.fillRect(0, 0 , 240 , 40, BLACK);
   display.setCursor(0, 0);
   display.setTextSize(1);
   display.setTextColor(NAVY);
-  display.print("BT Connected!");
+  display.print(F("BT Connected!"));
 }
 
 
