@@ -1,32 +1,19 @@
 #include "BluetoothSerial.h"
 #include "ELMduino.h" // Reminder: debugMode is OFF!
 #include "bunArraysX.h"
+#include "accelTracker.h"
 #include <SPI.h>
 #include <TFT_eSPI.h>
 
+ELM327 myELM327;
 TFT_eSPI display = TFT_eSPI();
-
+TFT_eSprite accelTracker = TFT_eSprite(&display);
+TFT_eSprite accelCircles = TFT_eSprite(&display);
 
 BluetoothSerial SerialBT;
 #define ELM_PORT   SerialBT
 #define DEBUG_PORT Serial
 
-/// Make sure these connections are correct ///
-//#define TFT_SCK    18
-//#define TFT_MOSI   23
-//#define TFT_MISO   19
-//#define TFT_CS     15
-//#define TFT_DC     4
-//#define TFT_RESET  2
-
-
-/// Display Settings 
-// Display = ILI9341  ---> https://github.com/adafruit/Adafruit_ILI9341/blob/master/Adafruit_ILI9341.h
-// Dimensions = 240px L  x 320px H
-//Arduino_ESP32SPI bus = Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCK, TFT_MOSI, TFT_MISO);
-//Arduino_ILI9341 display = Arduino_ILI9341(&bus, TFT_RESET);
-
-ELM327 myELM327;
 
 // Counter for bunny images :0) //
 int bunFrame = 0;
@@ -140,6 +127,16 @@ void setup(){
   display.print(EFR,1);
   display.setTextSize(1);
   display.print(F("l/h"));   
+
+  // Set Up Acceleration Circle
+  accelCircles.createSprite(140,140);
+  accelCircles.pushImage(0,0,140,140, accelCircles140);
+  accelTracker.createSprite(16,16);
+  accelTracker.pushImage(0,0,16,16, accelTracker16);
+  accelTracker.pushToSprite(&accelCircles , 70 - 8, 70 - 8, TFT_BLACK);
+  accelCircles.pushSprite(140 - 70, 150 - 70);
+  //display.drawCircle(140, 150, 70, TFT_RED);
+  //display.drawCircle(140, 150, 35, TFT_ORANGE);
 
   ELM_PORT.begin("ml.ESP32",true);
   
