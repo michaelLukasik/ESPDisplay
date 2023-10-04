@@ -6,6 +6,6 @@ The project uses the ELMduino library provided here, which uses ISO-TP protocal 
 
 Currently, the information is sent via Bluetooth (as that was the cheapest ELM device I could get my hands on 😎 ), and suffers from PID "misses" occasionally. A wired connection may be better in the future. 
 
-![image](https://github.com/michaelLukasik/ESPDisplay/assets/138163589/8e27342f-f7ff-41d4-af8d-0f722e413afa)
+![IMG20231004151402](https://github.com/michaelLukasik/ESPDisplay/assets/138163589/43de5a24-bb63-4b30-98d5-dfacca2a07ee)
 
-Here is an example image of how the display looks, with only MPH turned on for the time being. The rabbit bitmap image runs at a speed corresponding to how fast you are driving, utilizing the ESP32's Dual Core to bypass the PID misses and keep the animations smooth. 
+Here is an example image of how the display looks, with MPH, Fuel Consumption (EFR), Throttle Position, Battery Voltage and Accelerometer Output dispalyed. The rabbit bitmap image runs at a speed corresponding to how fast you are driving, utilizing the ESP32's Dual Core to bypass the PID misses and keep the animations smooth. 
