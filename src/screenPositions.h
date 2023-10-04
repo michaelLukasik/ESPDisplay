@@ -6,6 +6,11 @@ const int BUNNY_POS_Y = 273;
 const int BUNNY_W = 64;
 const int BUNNY_H = 47;
 
+const int MPH_SLOW = 25;
+const int MPH_MED = 40;
+const int MPH_FAST = 65;
+const int MPH_TOOFAST = 80;
+
 const int MPH_RECT_POS_X = 70;
 const int MPH_RECT_POS_Y = 273;
 const int MPH_RECT_W = 170;

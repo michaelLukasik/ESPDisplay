@@ -79,16 +79,15 @@ for(;;){
                             (ACCEL_CIRCLE_SPRITE_W/2 - ACCEL_TRACKER_SPRITE_W/2) + accelTrackerXOff , TFT_BLACK);
   accelCircles.pushSprite(ACCEL_CIRCLE_SPRITE_POS_X, ACCEL_CIRCLE_SPRITE_POS_Y);
 
-  if (bunFrame > 9) {bunFrame = 0;}
   // Bunny Display
-  display.drawXBitmap(BUNNY_POS_X, BUNNY_POS_Y, buns[bunFrame], BUNNY_W, BUNNY_H , TFT_WHITE);
-  if (MPH <= 25) { frameInterval = 250;}
-  else if (MPH > 25 and MPH <= 40) { frameInterval = 150;}
-  else if (MPH > 40 and MPH <= 65) { frameInterval = 50;}
-  else if (MPH > 65) { frameInterval = 20;}
+  if (MPH <= MPH_SLOW) { frameInterval = 250;}
+  else if (MPH > MPH_SLOW and MPH <= MPH_MED) { frameInterval = 150;}
+  else if (MPH > MPH_MED and MPH <= MPH_FAST) { frameInterval = 50;}
+  else if (MPH > MPH_FAST) { frameInterval = 20;}
   if(millis() - time_now > frameInterval){
-    display.drawXBitmap(BUNNY_POS_X, BUNNY_POS_Y, buns[bunFrame], BUNNY_W, BUNNY_H , TFT_BLACK); // Draw over old bitmap with background color to "erase" and prime for next image
+    display.drawXBitmap(BUNNY_POS_X, BUNNY_POS_Y, buns[bunFrame % 10], BUNNY_W, BUNNY_H , TFT_BLACK); // Draw over old bitmap with background color to "erase" and prime for next image
     bunFrame +=1;
+    display.drawXBitmap(BUNNY_POS_X, BUNNY_POS_Y, buns[bunFrame % 10], BUNNY_W, BUNNY_H , TFT_WHITE);
     time_now = millis();
   }
 
