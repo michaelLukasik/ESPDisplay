@@ -29,7 +29,7 @@ const int EFT_RECT_H = 30;
 
 const int BT_CONNECTED_RECT_POS_X = 0;
 const int BT_CONNECTED_RECT_POS_Y = 0;
-const int BT_CONNECTED_RECT_W = 240;
+const int BT_CONNECTED_RECT_W = 120;
 const int BT_CONNECTED_RECT_H = 40;
 
 
@@ -44,9 +44,15 @@ const int ACCEL_CIRCLE_INNER_RADIUS = 35;
 const int ACCEL_TRACKER_SPRITE_W = 16;
 const int ACCEL_TRACKER_SPRITE_H = 16;
 
-const int BOLT_SPRITE_POS_X = 180;
+const int BOLT_SPRITE_POS_X = 140;
 const int BOLT_SPRITE_POS_Y = 2;
 const int BOLT_SPRITE_W = 24;
 const int BOLT_SPRITE_H = 24;
+
+const int BAT_RECT_POS_X = 165;
+const int BAT_RECT_POS_Y = 0;
+const int BAT_RECT_W = 75;
+const int BAT_RECT_H = 30;
+
 
 #endif

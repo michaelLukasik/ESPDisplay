@@ -53,6 +53,10 @@ int frameInterval = 50;
 volatile unsigned long time_now = millis();
 int BTLock = 0;
 
+typedef enum { state_mph, state_throttle,
+                state_voltage } obd_pid_states;
+obd_pid_states obd_state = state_mph;
+
 
 float convertAccelMag(float accelReadingX, float accelReadingY){
   if(pow(pow(accelReadingX,2) + pow(accelReadingY,2), 0.5) / gee > 2.) {
@@ -106,7 +110,7 @@ for(;;){
     display.print(int(MPH));
     cachedMPH = MPH;
     }
-  // Update pedal position value, bar (X=5,Y=50, H=200, W=30) fills from bottom with Green
+  // Update pedal position value, bar fills from bottom with Green
   if(cachedRelativeThrottle != relativeThrottle){
     display.fillRect(REL_THROT_POS_X, REL_THROT_POS_Y , REL_THROT_W , REL_THROT_SCALE*(100 - relativeThrottle), TFT_BLACK);
     display.fillRect(REL_THROT_POS_X, REL_THROT_POS_Y + REL_THROT_SCALE*(100 - relativeThrottle), REL_THROT_W , (REL_THROT_SCALE*relativeThrottle) , TFT_GREEN); // Draw Rectangle as a percentage of how pressed the pedal is
@@ -130,7 +134,17 @@ for(;;){
     cachedEFR = EFR;
     }
 
-  //if(cachedBatVoltage != batVoltage){
+  if(cachedBatVoltage != batVoltage){
+    display.fillRect(BAT_RECT_POS_X, BAT_RECT_POS_Y, BAT_RECT_W, BAT_RECT_H, TFT_BLACK);
+    display.setCursor(BAT_RECT_POS_X + 2, BAT_RECT_POS_Y + 9);
+    display.setTextSize(2);
+    display.setTextColor(TFT_LIGHTGREY);
+    display.print(batVoltage,1);
+    display.setTextSize(1);
+    display.setTextColor(TFT_LIGHTGREY);
+    display.print('V');
+    cachedBatVoltage = batVoltage;
+    }
   } // End of core 0 loop code
 }
 
@@ -206,7 +220,19 @@ void setup(){
     BTLock = 1; // Turn on BT Lock, this is really only for debugging and should be removed soon.
     Serial.print(F("BT Lock Status: "));
     Serial.println(BTLock);
+  }
 
+  if (!myELM327.begin(SerialBT, 0, 1000)){
+    Serial.println(F("Couldn't connect to OBD scanner - Phase 2"));
+    display.setCursor(20, 40);
+    display.setTextSize(2);
+    display.setTextColor(TFT_WHITE);
+    display.print(F("Not connected (Code 2)"));
+    display.setCursor(20, 80);
+    display.setTextSize(2);
+    display.setTextColor(TFT_WHITE);
+    display.print(F("Reset the module "));
+    while (1);
   }
 
   if(BTLock == 0){
@@ -234,29 +260,55 @@ void setup(){
 
 void loop() // Use Core 1 to Query the ELM Device
 {
-
-  Serial.println(F("Entering Loop"));
-
-// ==================== Engine RPM Stuff ===================== //  Lets do some red line stuff
-//  uint32_t tempRPM = myELM327.rpm();
-///
-//  if (myELM327.nb_rx_state == ELM_SUCCESS){
-//   rpm = (uint32_t)tempRPM;
-//    Serial.print("RPM: "); Serial.println(rpm);
-//  }
-//  else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
-//    //myELM327.printError();
-//  }
-
-
+ switch (obd_state)
+ {
   // ==================== Speed Stuff ===================== //
-  tempMPH = myELM327.mph();
-
-  if (myELM327.nb_rx_state == ELM_SUCCESS){
-    MPH = tempMPH;
+  case state_mph:
+  {    
+    tempMPH = myELM327.mph();
+    if (myELM327.nb_rx_state == ELM_SUCCESS){
+      MPH = tempMPH;
+      Serial.println(MPH);
+      obd_state = state_throttle;
+    }
+    else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
+      myELM327.printError();
+      obd_state = state_throttle;
+    }
+    break;
   }
-  else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
-    Serial.println(F("MPH Error"));
+
+//================= Relative Throttle Stuff ===================== //
+  case state_throttle:
+  {
+    tempRelativeThrottle = myELM327.relativeThrottle();
+  
+    if (myELM327.nb_rx_state == ELM_SUCCESS){
+      relativeThrottle = tempRelativeThrottle;
+      Serial.println(relativeThrottle);
+      obd_state = state_voltage;
+    }
+    else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
+      myELM327.printError();
+      obd_state = state_voltage;
+    }
+    break;
+  }
+// ==================== Battery Stuff ===================== //
+  case state_voltage:
+  {
+    tempBatVoltage =  myELM327.batteryVoltage();
+
+    if (myELM327.nb_rx_state == ELM_SUCCESS){
+      batVoltage = tempBatVoltage;
+      Serial.println(batVoltage);
+      obd_state = state_mph;
+    }
+    else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
+      myELM327.printError();
+      obd_state = state_mph;
+    }
+    break;
   }
 
 // ==================== Oil Temp Stuff ===================== //
@@ -270,35 +322,27 @@ void loop() // Use Core 1 to Query the ELM Device
 //    //myELM327.printError();
 //  }
 
-// ==================== Relative Throttle Stuff ===================== //
-  tempRelativeThrottle = myELM327.relativeThrottle();
-  
-  if (myELM327.nb_rx_state == ELM_SUCCESS){
-   relativeThrottle = tempRelativeThrottle;
-  }
-  else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
-    Serial.println(F("Rel Throttle Error"));
-  }
-
 
 // ==================== Fuel Rate Stuff ===================== //
-  tempEFR = myELM327.fuelRate();
-  
-  if (myELM327.nb_rx_state == ELM_SUCCESS){
-   EFR = tempEFR;
-  }
-  else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
-    Serial.println(F("EFR ERROR"));
-  }
-// ==================== Battery Stuff ===================== //
+//  tempEFR = myELM327.fuelRate();
+//  
+//  if (myELM327.nb_rx_state == ELM_SUCCESS){
+//   EFR = tempEFR;
+//  }
+//  else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
+//    Serial.println(F("EFR ERROR"));
+//  }
 
-  tempBatVoltage =  myELM327.batteryVoltage();
-
-  if (myELM327.nb_rx_state == ELM_SUCCESS){
-   batVoltage = tempBatVoltage;
-  }
-  else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
-    Serial.println(F("Battery ERROR"));
-  }
+// ==================== Engine RPM Stuff ===================== //  Lets do some red line stuff
+//  uint32_t tempRPM = myELM327.rpm();
+///
+//  if (myELM327.nb_rx_state == ELM_SUCCESS){
+//   rpm = (uint32_t)tempRPM;
+//    Serial.print("RPM: "); Serial.println(rpm);
+//  }
+//  else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
+//    //myELM327.printError();
+//  }
+ } // End switch statement
 }
 
