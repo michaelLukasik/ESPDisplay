@@ -4,9 +4,12 @@
 #include "accelTracker.h"
 #include <SPI.h>
 #include <TFT_eSPI.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_ADXL345_U.h>
 
 ELM327 myELM327;
 TFT_eSPI display = TFT_eSPI();
+Adafruit_ADXL345_Unified accel = Adafruit_ADXL345_Unified(12345);
 TFT_eSprite accelTracker = TFT_eSprite(&display);
 TFT_eSprite accelCircles = TFT_eSprite(&display);
 
@@ -14,6 +17,9 @@ BluetoothSerial SerialBT;
 #define ELM_PORT   SerialBT
 #define DEBUG_PORT Serial
 
+//#define I2C_SCL 22  Commented just because these happen to be defaults anyways
+//#define I2c_SDA 21
+const int ADXL345 = 0x53; // Default address for the accelerometer
 
 // Counter for bunny images :0) //
 int bunFrame = 0;
@@ -40,14 +46,48 @@ volatile float EFR = 0; // Engine Fuel Rate
 volatile float cachedEFR = -1;
 float tempEFR = 0;
 
+float accelXOffset = 0.35;
+float accelYOffset = 0.35;
+float AccelMaxX = 0;
+float AccelMaxY = 0;
+float AccelMaxZ = 0;
+
 int frameInterval = 50;
 volatile unsigned long time_now = millis();
 int BTLock = 0;
 
 
+float convertAccelMag(float accelReadingX, float accelReadingY){
+  if(pow(pow(accelReadingX,2) + pow(accelReadingY,2), 0.5) / 9.81 > 2.) {
+    return 2.0;
+  } 
+  return (pow(pow(accelReadingX,2) + pow(accelReadingY,2), 0.5)) / 9.81 ;
+}
+
+float convertAccelArg(float accelReadingX, float accelReadingY){
+  return atan2(accelReadingY,accelReadingX);
+}
+
 //task1: Cycle through Screen Updates
 void cycleScreenCode ( void *pvParameters ){
 for(;;){
+
+    /* Get a new sensor event */ 
+  sensors_event_t accelEvent;  
+  accel.getEvent(&accelEvent);
+    
+  if (accelEvent.acceleration.x > AccelMaxX) AccelMaxX = accelEvent.acceleration.x; // Currently unused, but will add to display later.
+  if (accelEvent.acceleration.y > AccelMaxY) AccelMaxY = accelEvent.acceleration.y; //
+  if (accelEvent.acceleration.z > AccelMaxZ) AccelMaxZ = accelEvent.acceleration.z; //
+  
+  float accelTrackerXOff = (35.)*convertAccelMag(accelEvent.acceleration.x,accelEvent.acceleration.y)*cos(convertAccelArg(accelEvent.acceleration.x,accelEvent.acceleration.y));
+  float accelTrackerYOff = (35.)*convertAccelMag(accelEvent.acceleration.x,accelEvent.acceleration.y)*sin(convertAccelArg(accelEvent.acceleration.x,accelEvent.acceleration.y));
+
+  // Note: The X and Y offsets are such that they match the breadboard facing "forwards in the car". This makes the offsets look reversed here, but it is what it is.
+  accelCircles.pushImage(0,0,140,140, accelCircles140);
+  accelTracker.pushToSprite(&accelCircles , (70 - 8) + accelTrackerYOff  , (70 - 8) + accelTrackerXOff , TFT_BLACK);
+  accelCircles.pushSprite(140 - 70, 150 - 70);
+
   if (bunFrame > 9) {bunFrame = 0;}
   // Bunny Display
   display.drawXBitmap(0, 273, buns[bunFrame], 64, 47, TFT_WHITE);
@@ -133,10 +173,17 @@ void setup(){
   accelCircles.pushImage(0,0,140,140, accelCircles140);
   accelTracker.createSprite(16,16);
   accelTracker.pushImage(0,0,16,16, accelTracker16);
-  accelTracker.pushToSprite(&accelCircles , 70 - 8, 70 - 8, TFT_BLACK);
-  accelCircles.pushSprite(140 - 70, 150 - 70);
   //display.drawCircle(140, 150, 70, TFT_RED);
   //display.drawCircle(140, 150, 35, TFT_ORANGE);
+
+  /* Initialise the sensor */
+  if(!accel.begin())
+  {
+    /* There was a problem detecting the ADXL345 ... check your connections */
+    Serial.println("Ooops, no ADXL345 detected ... Check your wiring!");
+    while(1);
+  }
+  accel.setRange( ADXL345_RANGE_2_G);
 
   ELM_PORT.begin("ml.ESP32",true);
   
@@ -155,6 +202,9 @@ void setup(){
     display.setTextColor(TFT_RED);
     display.print(F("MPH: N/A "));
     BTLock = 1;
+    Serial.print(F("BT Lock Status: "));
+    Serial.println(BTLock);
+
   }
 
   if(BTLock == 0){
@@ -175,7 +225,8 @@ void setup(){
     &cycleScreen,  /* Task handle. */
     0); /* Core where the task should run */
 
-  while(BTLock == 1){}
+
+  while(BTLock == 1){/* Crashes if it actually enters the loop, keeping this lock condition atleast allows you to bugfix for now*/}
 }
 
 void loop()
