@@ -1,43 +1,43 @@
 #ifndef SCREENPOSITIONS_H
 #define SCREENPOSITIONS_H
 
-int BUNNY_POS_X = 0;
-int BUNNY_POS_Y = 273;
-int BUNNY_W = 64;
-int BUNNY_H = 47;
+const int BUNNY_POS_X = 0;
+const int BUNNY_POS_Y = 273;
+const int BUNNY_W = 64;
+const int BUNNY_H = 47;
 
-int MPH_RECT_POS_X = 70;
-int MPH_RECT_POS_Y = 273;
-int MPH_RECT_W = 170;
-int MPH_RECT_H = 30;
+const int MPH_RECT_POS_X = 70;
+const int MPH_RECT_POS_Y = 273;
+const int MPH_RECT_W = 170;
+const int MPH_RECT_H = 30;
 
-int REL_THROT_POS_X = 5;
-int REL_THROT_POS_Y = 50;
-int REL_THROT_W = 30;
-int REL_THROT_H = 200;
-int REL_THROT_SCALE = 2;
+const int REL_THROT_POS_X = 5;
+const int REL_THROT_POS_Y = 50;
+const int REL_THROT_W = 30;
+const int REL_THROT_H = 200;
+const int REL_THROT_SCALE = 2;
 
-int EFT_RECT_POS_X = 40;
-int EFT_RECT_POS_Y = 233;
-int EFT_RECT_W = 200;
-int EFT_RECT_H = 30;
+const int EFT_RECT_POS_X = 40;
+const int EFT_RECT_POS_Y = 233;
+const int EFT_RECT_W = 200;
+const int EFT_RECT_H = 30;
 
-int BT_CONNECTED_RECT_POS_X = 0;
-int BT_CONNECTED_RECT_POS_Y = 0;
-int BT_CONNECTED_RECT_W = 240;
-int BT_CONNECTED_RECT_H = 40;
-
-
-int ACCEL_CIRCLE_SPRITE_POS_X = 70;
-int ACCEL_CIRCLE_SPRITE_POS_Y = 80;
-int ACCEL_CIRCLE_SPRITE_W = 140;
-int ACCEL_CIRCLE_SPRITE_H = 140;
-int ACCEL_CIRCLE_FULL_RADIUS = 70;
-int ACCEL_CIRCLE_INNER_RADIUS = 35;
+const int BT_CONNECTED_RECT_POS_X = 0;
+const int BT_CONNECTED_RECT_POS_Y = 0;
+const int BT_CONNECTED_RECT_W = 240;
+const int BT_CONNECTED_RECT_H = 40;
 
 
-int ACCEL_TRACKER_SPRITE_W = 16;
-int ACCEL_TRACKER_SPRITE_H = 16;
+const int ACCEL_CIRCLE_SPRITE_POS_X = 70;
+const int ACCEL_CIRCLE_SPRITE_POS_Y = 80;
+const int ACCEL_CIRCLE_SPRITE_W = 140;
+const int ACCEL_CIRCLE_SPRITE_H = 140;
+const int ACCEL_CIRCLE_FULL_RADIUS = 70;
+const int ACCEL_CIRCLE_INNER_RADIUS = 35;
+
+
+const int ACCEL_TRACKER_SPRITE_W = 16;
+const int ACCEL_TRACKER_SPRITE_H = 16;
 
 
 #endif
