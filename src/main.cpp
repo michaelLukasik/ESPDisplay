@@ -1,8 +1,8 @@
 #include "BluetoothSerial.h" // Huge library, maybe swap to wired connection
 #include "ELMduino.h" // Reminder: debugMode is OFF!
-#include "bunArraysX.h" // Using XBM Version for now
-#include "accelTracker.h" // BMP for acceleration tracking sprites
-#include "screenPositions.h" // Definitions for all the screen positons, minus some minor tweeks
+#include "bunnyBitmaps/bunArraysX.h" // Using XBM Version for now
+#include "screenPositions.h" // Definitions for all the screen positons, minus some minor tweaks
+#include "sprites.h" 
 #include <SPI.h>
 #include <TFT_eSPI.h>
 #include <Adafruit_Sensor.h>
@@ -14,6 +14,7 @@ TFT_eSPI display = TFT_eSPI();
 Adafruit_ADXL345_Unified accel = Adafruit_ADXL345_Unified(12345);
 TFT_eSprite accelTracker = TFT_eSprite(&display);
 TFT_eSprite accelCircles = TFT_eSprite(&display);
+TFT_eSprite batterySprite = TFT_eSprite(&display);
 TaskHandle_t cycleScreen; 
 BluetoothSerial SerialBT;
 
@@ -36,6 +37,11 @@ float tempMPH = 0;
 volatile float EFR = 0; // Engine Fuel Rate
 volatile float cachedEFR = -1;
 float tempEFR = 0;
+
+volatile float batVoltage = 0; 
+volatile float cachedBatVoltage = -1;
+float tempBatVoltage = 0;
+
 
 float accelXOffset = 0.35;
 float accelYOffset = 0.35;
@@ -62,13 +68,12 @@ float convertAccelArg(float accelReadingX, float accelReadingY){
 void cycleScreenCode ( void *pvParameters ){ //Cycle through Screen Updates on Core 0
 for(;;){
 
-  /* Get a new sensor event */ 
-  sensors_event_t accelEvent;  
+  sensors_event_t accelEvent; // Get a new ADXL345 Event
   accel.getEvent(&accelEvent);
     
   if (accelEvent.acceleration.x > AccelMaxX) AccelMaxX = accelEvent.acceleration.x; // Currently unused, but will add to display later.
-  if (accelEvent.acceleration.y > AccelMaxY) AccelMaxY = accelEvent.acceleration.y; //
-  if (accelEvent.acceleration.z > AccelMaxZ) AccelMaxZ = accelEvent.acceleration.z; //
+  if (accelEvent.acceleration.y > AccelMaxY) AccelMaxY = accelEvent.acceleration.y; // Currently unused, but will add to display later.
+  if (accelEvent.acceleration.z > AccelMaxZ) AccelMaxZ = accelEvent.acceleration.z; // Currently unused, but will add to display later.
   
   float accelTrackerXOff = ACCEL_CIRCLE_INNER_RADIUS*convertAccelMag(accelEvent.acceleration.x,accelEvent.acceleration.y)*cos(convertAccelArg(accelEvent.acceleration.x,accelEvent.acceleration.y));
   float accelTrackerYOff = ACCEL_CIRCLE_INNER_RADIUS*convertAccelMag(accelEvent.acceleration.x,accelEvent.acceleration.y)*sin(convertAccelArg(accelEvent.acceleration.x,accelEvent.acceleration.y));
@@ -124,6 +129,8 @@ for(;;){
     display.print(F("l/h"));  
     cachedEFR = EFR;
     }
+
+  //if(cachedBatVoltage != batVoltage){
   } // End of core 0 loop code
 }
 
@@ -158,12 +165,20 @@ void setup(){
   display.setTextSize(1);
   display.print(F("l/h"));   
 
-  // Set Up Acceleration Circle
+  // Set Up Acceleration Tracker and Background sprite (accelCircles)
   accelCircles.createSprite(ACCEL_CIRCLE_SPRITE_W ,ACCEL_CIRCLE_SPRITE_H );
+  accelCircles.setSwapBytes(true); // Change Endian-ness
   accelCircles.pushImage(0,0,ACCEL_CIRCLE_SPRITE_W ,ACCEL_CIRCLE_SPRITE_H , accelCircles140);
   accelTracker.createSprite(ACCEL_TRACKER_SPRITE_W ,ACCEL_TRACKER_SPRITE_H);
   accelTracker.pushImage(0,0,ACCEL_TRACKER_SPRITE_W, ACCEL_TRACKER_SPRITE_H, accelTracker16);
+  
 
+
+  //Set up Battery Voltage area
+  batterySprite.createSprite(BOLT_SPRITE_W, BOLT_SPRITE_H);
+  batterySprite.setSwapBytes(true); // Change Endian-ness
+  batterySprite.pushImage(0,0,BOLT_SPRITE_W, BOLT_SPRITE_H, bolt24);
+  batterySprite.pushSprite(BOLT_SPRITE_POS_X, BOLT_SPRITE_POS_Y); //Push the sprite in the setup as this wont change in the looping section
 
   /* Initialise the sensor */
   if(!accel.begin()){
@@ -196,7 +211,7 @@ void setup(){
 
   if(BTLock == 0){
     display.fillScreen(TFT_BLACK);
-    display.fillRect(BT_CONNECTED_RECT_POS_X, BT_CONNECTED_RECT_POS_Y , BT_CONNECTED_RECT_W , BT_CONNECTED_RECT_H, TFT_BLACK);
+    //display.fillRect(BT_CONNECTED_RECT_POS_X, BT_CONNECTED_RECT_POS_Y , BT_CONNECTED_RECT_W , BT_CONNECTED_RECT_H, TFT_BLACK);
     display.setCursor(0, 0);
     display.setTextSize(1);
     display.setTextColor(TFT_NAVY);
@@ -241,7 +256,7 @@ void loop() // Use Core 1 to Query the ELM Device
     MPH = tempMPH;
   }
   else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
-    Serial.println(F("nb_rx_state != ELM Getting Msg "));
+    Serial.println(F("MPH Error"));
   }
 
 // ==================== Oil Temp Stuff ===================== //
@@ -262,7 +277,7 @@ void loop() // Use Core 1 to Query the ELM Device
    relativeThrottle = tempRelativeThrottle;
   }
   else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
-    Serial.println(F("nb_rx_state != ELM Getting Msg "));
+    Serial.println(F("Rel Throttle Error"));
   }
 
 
@@ -271,10 +286,19 @@ void loop() // Use Core 1 to Query the ELM Device
   
   if (myELM327.nb_rx_state == ELM_SUCCESS){
    EFR = tempEFR;
-   Serial.println(tempEFR);
   }
   else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
-    Serial.println(F("EFR ERROR "));
+    Serial.println(F("EFR ERROR"));
+  }
+// ==================== Battery Stuff ===================== //
+
+  tempBatVoltage =  myELM327.batteryVoltage();
+
+  if (myELM327.nb_rx_state == ELM_SUCCESS){
+   batVoltage = tempBatVoltage;
+  }
+  else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
+    Serial.println(F("Battery ERROR"));
   }
 }
 

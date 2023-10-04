@@ -44,5 +44,9 @@ const int ACCEL_CIRCLE_INNER_RADIUS = 35;
 const int ACCEL_TRACKER_SPRITE_W = 16;
 const int ACCEL_TRACKER_SPRITE_H = 16;
 
+const int BOLT_SPRITE_POS_X = 180;
+const int BOLT_SPRITE_POS_Y = 2;
+const int BOLT_SPRITE_W = 24;
+const int BOLT_SPRITE_H = 24;
 
 #endif
