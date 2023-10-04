@@ -173,8 +173,7 @@ void setup(){
   accelCircles.pushImage(0,0,140,140, accelCircles140);
   accelTracker.createSprite(16,16);
   accelTracker.pushImage(0,0,16,16, accelTracker16);
-  //display.drawCircle(140, 150, 70, TFT_RED);
-  //display.drawCircle(140, 150, 35, TFT_ORANGE);
+
 
   /* Initialise the sensor */
   if(!accel.begin())
@@ -224,7 +223,6 @@ void setup(){
     0,  /* Priority of the task */
     &cycleScreen,  /* Task handle. */
     0); /* Core where the task should run */
-
 
   while(BTLock == 1){/* Crashes if it actually enters the loop, keeping this lock condition atleast allows you to bugfix for now*/}
 }
