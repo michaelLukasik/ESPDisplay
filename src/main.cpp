@@ -15,6 +15,7 @@ Adafruit_ADXL345_Unified accel = Adafruit_ADXL345_Unified(12345);
 TFT_eSprite accelTracker = TFT_eSprite(&display);
 TFT_eSprite accelCircles = TFT_eSprite(&display);
 TFT_eSprite batterySprite = TFT_eSprite(&display);
+TFT_eSprite fuelSprite = TFT_eSprite(&display);
 TaskHandle_t cycleScreen; 
 BluetoothSerial SerialBT;
 
@@ -25,6 +26,10 @@ int bunFrame = 0; // Counter for bunny images
 const unsigned char* buns[] = {
     bun1, bun2, bun3, bun4, bun5, bun6, bun7, bun8, bun9, bun10, 
 };
+
+typedef enum { state_mph, state_throttle,
+                state_voltage, state_fuel} obd_pid_states;
+obd_pid_states obd_state = state_mph;
 
 volatile float relativeThrottle = 0;
 volatile float cachedRelativeThrottle = -1;
@@ -42,6 +47,10 @@ volatile float batVoltage = 0;
 volatile float cachedBatVoltage = -1;
 float tempBatVoltage = 0;
 
+volatile float fuelLevel = 0.;
+volatile float cachedFuelLevel = -1.;
+float tempFuelLevel = 0.;
+
 
 float accelXOffset = 0.35;
 float accelYOffset = 0.35;
@@ -52,11 +61,6 @@ float AccelMaxZ = 0;
 int frameInterval = 50;
 volatile unsigned long time_now = millis();
 int BTLock = 0;
-
-typedef enum { state_mph, state_throttle,
-                state_voltage } obd_pid_states;
-obd_pid_states obd_state = state_mph;
-
 
 float convertAccelMag(float accelReadingX, float accelReadingY){
   if(pow(pow(accelReadingX,2) + pow(accelReadingY,2), 0.5) / gee > 2.) {
@@ -73,20 +77,20 @@ void cycleScreenCode ( void *pvParameters ){ //Cycle through Screen Updates on C
 for(;;){
 
   sensors_event_t accelEvent; // Get a new ADXL345 Event
-  accel.getEvent(&accelEvent);
+  if(accel.getEvent(&accelEvent)){ 
+    if (accelEvent.acceleration.x > AccelMaxX) AccelMaxX = accelEvent.acceleration.x; // Currently unused, but will add to display later.
+    if (accelEvent.acceleration.y > AccelMaxY) AccelMaxY = accelEvent.acceleration.y; // Currently unused, but will add to display later.
+    if (accelEvent.acceleration.z > AccelMaxZ) AccelMaxZ = accelEvent.acceleration.z; // Currently unused, but will add to display later.
     
-  if (accelEvent.acceleration.x > AccelMaxX) AccelMaxX = accelEvent.acceleration.x; // Currently unused, but will add to display later.
-  if (accelEvent.acceleration.y > AccelMaxY) AccelMaxY = accelEvent.acceleration.y; // Currently unused, but will add to display later.
-  if (accelEvent.acceleration.z > AccelMaxZ) AccelMaxZ = accelEvent.acceleration.z; // Currently unused, but will add to display later.
-  
-  float accelTrackerXOff = ACCEL_CIRCLE_INNER_RADIUS*convertAccelMag(accelEvent.acceleration.x,accelEvent.acceleration.y)*cos(convertAccelArg(accelEvent.acceleration.x,accelEvent.acceleration.y));
-  float accelTrackerYOff = ACCEL_CIRCLE_INNER_RADIUS*convertAccelMag(accelEvent.acceleration.x,accelEvent.acceleration.y)*sin(convertAccelArg(accelEvent.acceleration.x,accelEvent.acceleration.y));
+    float accelTrackerXOff = ACCEL_CIRCLE_INNER_RADIUS*convertAccelMag(accelEvent.acceleration.x,accelEvent.acceleration.y)*cos(convertAccelArg(accelEvent.acceleration.x,accelEvent.acceleration.y));
+    float accelTrackerYOff = ACCEL_CIRCLE_INNER_RADIUS*convertAccelMag(accelEvent.acceleration.x,accelEvent.acceleration.y)*sin(convertAccelArg(accelEvent.acceleration.x,accelEvent.acceleration.y));
 
-  // Note: The X and Y offsets are such that they match the breadboard facing "forwards in the car". This makes the offsets look reversed here, but it is what it is.
-  accelCircles.pushImage(0,0,ACCEL_CIRCLE_SPRITE_W, ACCEL_CIRCLE_SPRITE_H, accelCircles140);
-  accelTracker.pushToSprite(&accelCircles , (ACCEL_CIRCLE_SPRITE_W/2 - ACCEL_TRACKER_SPRITE_W/2) + accelTrackerYOff, 
-                            (ACCEL_CIRCLE_SPRITE_W/2 - ACCEL_TRACKER_SPRITE_W/2) + accelTrackerXOff , TFT_BLACK);
-  accelCircles.pushSprite(ACCEL_CIRCLE_SPRITE_POS_X, ACCEL_CIRCLE_SPRITE_POS_Y);
+    // Note: The X and Y offsets are such that they match the breadboard facing "forwards in the car". This makes the offsets look reversed here, but it is what it is.
+    accelCircles.pushImage(0,0,ACCEL_CIRCLE_SPRITE_W, ACCEL_CIRCLE_SPRITE_H, accelCircles140);
+    accelTracker.pushToSprite(&accelCircles , (ACCEL_CIRCLE_SPRITE_W/2 - ACCEL_TRACKER_SPRITE_W/2) + accelTrackerYOff, 
+                              (ACCEL_CIRCLE_SPRITE_W/2 - ACCEL_TRACKER_SPRITE_W/2) + accelTrackerXOff , TFT_BLACK);
+    accelCircles.pushSprite(ACCEL_CIRCLE_SPRITE_POS_X, ACCEL_CIRCLE_SPRITE_POS_Y);
+  }
 
   // Bunny Display
   if (MPH <= MPH_SLOW) { frameInterval = 250;}
@@ -145,6 +149,19 @@ for(;;){
     display.print('V');
     cachedBatVoltage = batVoltage;
     }
+
+  if(cachedFuelLevel != fuelLevel){
+    display.fillRect(FUEL_RECT_POS_X, FUEL_RECT_POS_Y, FUEL_RECT_W, FUEL_RECT_H, TFT_BLACK);
+    display.setCursor(FUEL_RECT_POS_X + 2, FUEL_RECT_POS_Y + 4);
+    display.setTextSize(2);
+    display.setTextColor(TFT_LIGHTGREY);
+    display.print(fuelLevel);
+    display.setTextSize(1);
+    display.setTextColor(TFT_LIGHTGREY);
+    display.print('%');
+    cachedFuelLevel = fuelLevel; 
+    }
+
   } // End of core 0 loop code
 }
 
@@ -186,13 +203,17 @@ void setup(){
   accelTracker.createSprite(ACCEL_TRACKER_SPRITE_W ,ACCEL_TRACKER_SPRITE_H);
   accelTracker.pushImage(0,0,ACCEL_TRACKER_SPRITE_W, ACCEL_TRACKER_SPRITE_H, accelTracker16);
   
-
-
   //Set up Battery Voltage area
   batterySprite.createSprite(BOLT_SPRITE_W, BOLT_SPRITE_H);
   batterySprite.setSwapBytes(true); // Change Endian-ness
   batterySprite.pushImage(0,0,BOLT_SPRITE_W, BOLT_SPRITE_H, bolt24);
-  batterySprite.pushSprite(BOLT_SPRITE_POS_X, BOLT_SPRITE_POS_Y); //Push the sprite in the setup as this wont change in the looping section
+  batterySprite.pushSprite(BOLT_SPRITE_POS_X, BOLT_SPRITE_POS_Y);
+
+  //Set up Fuel Level area
+  fuelSprite.createSprite(FUEL_SPRITE_W, FUEL_SPRITE_H);
+  fuelSprite.setSwapBytes(true); // Change Endian-ness
+  fuelSprite.pushImage(0, 0, FUEL_SPRITE_W, FUEL_SPRITE_H, fuel24);
+  fuelSprite.pushSprite(FUEL_SPRITE_POS_X, FUEL_SPRITE_POS_Y); 
 
   /* Initialise the sensor */
   if(!accel.begin()){
@@ -232,16 +253,29 @@ void setup(){
     display.setTextSize(2);
     display.setTextColor(TFT_WHITE);
     display.print(F("Reset the module "));
-    while (1);
+    BTLock = 1; 
   }
 
   if(BTLock == 0){
-    display.fillScreen(TFT_BLACK);
-    //display.fillRect(BT_CONNECTED_RECT_POS_X, BT_CONNECTED_RECT_POS_Y , BT_CONNECTED_RECT_W , BT_CONNECTED_RECT_H, TFT_BLACK);
+    display.fillScreen(TFT_BLACK); 
+
+    batterySprite.createSprite(BOLT_SPRITE_W, BOLT_SPRITE_H);
+    batterySprite.setSwapBytes(true); // Change Endian-ness of battery sprite
+    batterySprite.pushImage(0,0,BOLT_SPRITE_W, BOLT_SPRITE_H, bolt24);
+    batterySprite.pushSprite(BOLT_SPRITE_POS_X, BOLT_SPRITE_POS_Y);
+
+    fuelSprite.createSprite(FUEL_SPRITE_W, FUEL_SPRITE_H);
+    fuelSprite.setSwapBytes(true); // Change Endian-ness
+    fuelSprite.pushImage(0, 0, FUEL_SPRITE_W, FUEL_SPRITE_H, fuel24);
+    fuelSprite.pushSprite(FUEL_SPRITE_POS_X, FUEL_SPRITE_POS_Y);
+
     display.setCursor(0, 0);
     display.setTextSize(1);
     display.setTextColor(TFT_NAVY);
     display.print(F("BT Connected!"));
+    display.setTextColor(TFT_PINK);
+    display.setCursor(REL_THROT_POS_X + 1, REL_THROT_POS_Y + REL_THROT_H + 5);
+    display.print(F("Thr.")); 
   }
 
   xTaskCreatePinnedToCore(
@@ -306,11 +340,25 @@ void loop() // Use Core 1 to Query the ELM Device
     }
     else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
       myELM327.printError();
-      obd_state = state_mph;
+      obd_state = state_fuel;
     }
     break;
   }
-
+// ==================== Fuel Level Stuff ===================== // 
+  case state_fuel:
+  {
+    float fuelLevel = myELM327.fuelLevel();
+    
+    if (myELM327.nb_rx_state == ELM_SUCCESS){
+      fuelLevel = tempFuelLevel;
+      Serial.print("Fuel: "); Serial.println(fuelLevel);
+    }
+    else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
+      myELM327.printError();
+      obd_state = state_mph;
+    }
+    break;
+ }
 // ==================== Oil Temp Stuff ===================== //
 //  float tempOilTemp = myELM327.oilTemp();
 // 

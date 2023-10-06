@@ -54,5 +54,15 @@ const int BAT_RECT_POS_Y = 0;
 const int BAT_RECT_W = 75;
 const int BAT_RECT_H = 30;
 
+const int FUEL_SPRITE_POS_X = 140;
+const int FUEL_SPRITE_POS_Y = 26;
+const int FUEL_SPRITE_W = 24;
+const int FUEL_SPRITE_H = 24;
+
+const int FUEL_RECT_POS_X = 165;
+const int FUEL_RECT_POS_Y = 30;
+const int FUEL_RECT_W = 75;
+const int FUEL_RECT_H = 30;
+
 
 #endif
