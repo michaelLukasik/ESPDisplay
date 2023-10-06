@@ -28,7 +28,7 @@ const unsigned char* buns[] = {
 };
 
 typedef enum { state_mph, state_throttle,
-                state_voltage, state_fuel} obd_pid_states;
+                state_voltage, state_fuel, state_efr} obd_pid_states;
 obd_pid_states obd_state = state_mph;
 
 volatile float relativeThrottle = 0;
@@ -287,7 +287,7 @@ void setup(){
     &cycleScreen,  /* Task handle. */
     0); /* Core where the task should run */
 
-  while(BTLock == 1){/* Crashes if it actually enters the loop, keeping this lock condition atleast allows you to bugfix for now*/}
+  while(BTLock == 1){}
   
   Serial.println(F("Exiting Setup ")); 
 }
@@ -336,7 +336,7 @@ void loop() // Use Core 1 to Query the ELM Device
     if (myELM327.nb_rx_state == ELM_SUCCESS){
       batVoltage = tempBatVoltage;
       Serial.println(batVoltage);
-      obd_state = state_mph;
+      obd_state = state_fuel;
     }
     else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
       myELM327.printError();
@@ -347,18 +347,45 @@ void loop() // Use Core 1 to Query the ELM Device
 // ==================== Fuel Level Stuff ===================== // 
   case state_fuel:
   {
-    float fuelLevel = myELM327.fuelLevel();
+    tempFuelLevel = myELM327.fuelLevel();
     
     if (myELM327.nb_rx_state == ELM_SUCCESS){
       fuelLevel = tempFuelLevel;
       Serial.print("Fuel: "); Serial.println(fuelLevel);
+      obd_state = state_efr;
     }
     else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
       myELM327.printError();
-      obd_state = state_mph;
+      obd_state = state_efr;
     }
     break;
  }
+// ==================== Fuel Rate Stuff ===================== //
+  case state_efr:
+  {
+    tempEFR = myELM327.fuelRate();
+    if (myELM327.nb_rx_state == ELM_SUCCESS){
+      EFR = tempEFR;
+      Serial.print("EFR: "); Serial.println(EFR);
+      obd_state = state_mph;
+    }
+    else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
+      Serial.println(F("EFR ERROR"));
+      obd_state = state_mph;
+    }
+    break;
+  }
+// ==================== Engine RPM Stuff ===================== //  Lets do some red line stuff
+//  uint32_t tempRPM = myELM327.rpm();
+///
+//  if (myELM327.nb_rx_state == ELM_SUCCESS){
+//   rpm = (uint32_t)tempRPM;
+//    Serial.print("RPM: "); Serial.println(rpm);
+//  }
+//  else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
+//    //myELM327.printError();
+//  }
+
 // ==================== Oil Temp Stuff ===================== //
 //  float tempOilTemp = myELM327.oilTemp();
 // 
@@ -370,27 +397,6 @@ void loop() // Use Core 1 to Query the ELM Device
 //    //myELM327.printError();
 //  }
 
-
-// ==================== Fuel Rate Stuff ===================== //
-//  tempEFR = myELM327.fuelRate();
-//  
-//  if (myELM327.nb_rx_state == ELM_SUCCESS){
-//   EFR = tempEFR;
-//  }
-//  else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
-//    Serial.println(F("EFR ERROR"));
-//  }
-
-// ==================== Engine RPM Stuff ===================== //  Lets do some red line stuff
-//  uint32_t tempRPM = myELM327.rpm();
-///
-//  if (myELM327.nb_rx_state == ELM_SUCCESS){
-//   rpm = (uint32_t)tempRPM;
-//    Serial.print("RPM: "); Serial.println(rpm);
-//  }
-//  else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
-//    //myELM327.printError();
-//  }
  } // End switch statement
 }
 
