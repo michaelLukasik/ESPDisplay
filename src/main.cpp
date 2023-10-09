@@ -12,7 +12,10 @@ ELM327 myELM327;
 uint8_t address[6] = { 0x66, 0x1E, 0x32, 0xF8, 0xC3, 0xA1 }; // ELM Address
 TFT_eSPI display = TFT_eSPI();
 Adafruit_ADXL345_Unified accel = Adafruit_ADXL345_Unified(12345);
-TFT_eSprite accelTracker = TFT_eSprite(&display);
+TFT_eSprite accelTracker_0 = TFT_eSprite(&display);
+TFT_eSprite accelTracker_1 = TFT_eSprite(&display); // Previous-1
+TFT_eSprite accelTracker_2 = TFT_eSprite(&display); // Previous-2
+TFT_eSprite accelTracker_3 = TFT_eSprite(&display); // Previous-3
 TFT_eSprite accelCircles = TFT_eSprite(&display);
 TFT_eSprite batterySprite = TFT_eSprite(&display);
 TFT_eSprite fuelSprite = TFT_eSprite(&display);
@@ -58,6 +61,14 @@ float AccelMaxX = 0;
 float AccelMaxY = 0;
 float AccelMaxZ = 0;
 
+float accelTrackerXOff_1 = 0.;
+float accelTrackerYOff_1 = 0.;
+float accelTrackerXOff_2 = 0.;
+float accelTrackerYOff_2 = 0.;
+float accelTrackerXOff_3 = 0.;
+float accelTrackerYOff_3 = 0.;
+
+
 int frameInterval = 50;
 volatile unsigned long time_now = millis();
 int BTLock = 0;
@@ -81,15 +92,31 @@ for(;;){
     if (accelEvent.acceleration.x > AccelMaxX) AccelMaxX = accelEvent.acceleration.x; // Currently unused, but will add to display later.
     if (accelEvent.acceleration.y > AccelMaxY) AccelMaxY = accelEvent.acceleration.y; // Currently unused, but will add to display later.
     if (accelEvent.acceleration.z > AccelMaxZ) AccelMaxZ = accelEvent.acceleration.z; // Currently unused, but will add to display later.
-    
+     
     float accelTrackerXOff = ACCEL_CIRCLE_INNER_RADIUS*convertAccelMag(accelEvent.acceleration.x,accelEvent.acceleration.y)*cos(convertAccelArg(accelEvent.acceleration.x,accelEvent.acceleration.y));
     float accelTrackerYOff = ACCEL_CIRCLE_INNER_RADIUS*convertAccelMag(accelEvent.acceleration.x,accelEvent.acceleration.y)*sin(convertAccelArg(accelEvent.acceleration.x,accelEvent.acceleration.y));
 
     // Note: The X and Y offsets are such that they match the breadboard facing "forwards in the car". This makes the offsets look reversed here, but it is what it is.
     accelCircles.pushImage(0,0,ACCEL_CIRCLE_SPRITE_W, ACCEL_CIRCLE_SPRITE_H, accelCircles140);
-    accelTracker.pushToSprite(&accelCircles , (ACCEL_CIRCLE_SPRITE_W/2 - ACCEL_TRACKER_SPRITE_W/2) + accelTrackerYOff, 
-                              (ACCEL_CIRCLE_SPRITE_W/2 - ACCEL_TRACKER_SPRITE_W/2) + accelTrackerXOff , TFT_BLACK);
+    
+    accelTracker_3.pushToSprite(&accelCircles , (ACCEL_CIRCLE_SPRITE_W/2 - ACCEL_TRACKER_SPRITE4_W/2) + accelTrackerYOff_3, 
+                              (ACCEL_CIRCLE_SPRITE_W/2 - ACCEL_TRACKER_SPRITE4_W/2) + accelTrackerXOff_3 , TFT_BLACK);
+    accelTracker_2.pushToSprite(&accelCircles , (ACCEL_CIRCLE_SPRITE_W/2 - ACCEL_TRACKER_SPRITE6_W/2) + accelTrackerYOff_2, 
+                              (ACCEL_CIRCLE_SPRITE_W/2 - ACCEL_TRACKER_SPRITE6_W/2) + accelTrackerXOff_2 , TFT_BLACK);
+    accelTracker_1.pushToSprite(&accelCircles , (ACCEL_CIRCLE_SPRITE_W/2 - ACCEL_TRACKER_SPRITE10_W/2) + accelTrackerYOff_1, 
+                              (ACCEL_CIRCLE_SPRITE_W/2 - ACCEL_TRACKER_SPRITE10_W/2) + accelTrackerXOff_1 , TFT_BLACK);
+    accelTracker_0.pushToSprite(&accelCircles , (ACCEL_CIRCLE_SPRITE_W/2 - ACCEL_TRACKER_SPRITE16_W/2) + accelTrackerYOff, 
+                              (ACCEL_CIRCLE_SPRITE_W/2 - ACCEL_TRACKER_SPRITE16_W/2) + accelTrackerXOff , TFT_BLACK);
+    
     accelCircles.pushSprite(ACCEL_CIRCLE_SPRITE_POS_X, ACCEL_CIRCLE_SPRITE_POS_Y);
+  
+    accelTrackerXOff_3 = accelTrackerXOff_2; 
+    accelTrackerYOff_3 = accelTrackerYOff_2;
+    accelTrackerXOff_2 = accelTrackerXOff_1; 
+    accelTrackerYOff_2 = accelTrackerYOff_1;
+    accelTrackerXOff_1 = accelTrackerXOff;
+    accelTrackerYOff_1 = accelTrackerYOff;
+
   }
 
   // Bunny Display
@@ -200,8 +227,16 @@ void setup(){
   accelCircles.createSprite(ACCEL_CIRCLE_SPRITE_W ,ACCEL_CIRCLE_SPRITE_H );
   accelCircles.setSwapBytes(true); // Change Endian-ness
   accelCircles.pushImage(0,0,ACCEL_CIRCLE_SPRITE_W ,ACCEL_CIRCLE_SPRITE_H , accelCircles140);
-  accelTracker.createSprite(ACCEL_TRACKER_SPRITE_W ,ACCEL_TRACKER_SPRITE_H);
-  accelTracker.pushImage(0,0,ACCEL_TRACKER_SPRITE_W, ACCEL_TRACKER_SPRITE_H, accelTracker16);
+
+  accelTracker_0.createSprite(ACCEL_TRACKER_SPRITE16_W ,ACCEL_TRACKER_SPRITE16_H);
+  accelTracker_1.createSprite(ACCEL_TRACKER_SPRITE10_W ,ACCEL_TRACKER_SPRITE10_H);
+  accelTracker_2.createSprite(ACCEL_TRACKER_SPRITE6_W ,ACCEL_TRACKER_SPRITE6_H);
+  accelTracker_3.createSprite(ACCEL_TRACKER_SPRITE4_W ,ACCEL_TRACKER_SPRITE4_H);
+  
+  accelTracker_0.pushImage(0,0,ACCEL_TRACKER_SPRITE16_W, ACCEL_TRACKER_SPRITE16_H, accelTracker16);
+  accelTracker_1.pushImage(0,0,ACCEL_TRACKER_SPRITE10_W, ACCEL_TRACKER_SPRITE10_H, accelTracker10);
+  accelTracker_2.pushImage(0,0,ACCEL_TRACKER_SPRITE6_W, ACCEL_TRACKER_SPRITE6_H, accelTracker6);
+  accelTracker_3.pushImage(0,0,ACCEL_TRACKER_SPRITE4_W, ACCEL_TRACKER_SPRITE4_H, accelTracker4);
   
   //Set up Battery Voltage area
   batterySprite.createSprite(BOLT_SPRITE_W, BOLT_SPRITE_H);
@@ -287,7 +322,7 @@ void setup(){
     &cycleScreen,  /* Task handle. */
     0); /* Core where the task should run */
 
-  while(BTLock == 1){}
+  //while(BTLock == 1){}
   
   Serial.println(F("Exiting Setup ")); 
 }
