@@ -4,7 +4,7 @@ ESP32 Based project to query OBD2 data through Vehicle PID's and display the res
 
 The project uses the [ELMduino library provided here](https://github.com/PowerBroker2/ELMduino), which uses ISO-TP protocal via quereying the Vehichle's CAN bus and reconfigures the message to be parsable on the user end. All of the work on this parsing algorithm was provided by the library's creator. 
 
-Currently, the information is sent via Bluetooth (as that was the cheapest ELM device I could get my hands on 😎 ), and suffers from PID "misses" occasionally. A wired connection may be better in the future. 
+Currently, the information is sent via Bluetooth (as that was the cheapest ELM device I could get my hands on 😎 ), and suffers from PID "misses" occasionally. A wired connection may be better in the future. I am using an ADXL345 Accelerometer currently for the g-force measurements connected via I2C.
 
 ![Display_Example1](https://github.com/michaelLukasik/ESPDisplay/assets/138163589/ca17e95f-131b-4d0a-8719-301346527a57)
 
