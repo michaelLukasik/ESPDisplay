@@ -19,6 +19,7 @@ TFT_eSprite accelTracker_3 = TFT_eSprite(&display); // Previous-3
 TFT_eSprite accelCircles = TFT_eSprite(&display);
 TFT_eSprite batterySprite = TFT_eSprite(&display);
 TFT_eSprite fuelSprite = TFT_eSprite(&display);
+TFT_eSprite oilSprite = TFT_eSprite(&display);
 TaskHandle_t cycleScreen; 
 BluetoothSerial SerialBT;
 
@@ -30,7 +31,7 @@ const unsigned char* buns[] = {
     bun1, bun2, bun3, bun4, bun5, bun6, bun7, bun8, bun9, bun10, 
 };
 
-typedef enum { state_mph, state_throttle,
+typedef enum { state_mph, state_throttle, state_oil,
                 state_voltage, state_fuel, state_efr} obd_pid_states;
 obd_pid_states obd_state = state_mph;
 
@@ -54,6 +55,9 @@ volatile float fuelLevel = 0.;
 volatile float cachedFuelLevel = -1.;
 float tempFuelLevel = 0.;
 
+volatile float oilTemp = 0.;
+volatile float cachedOilTemp = -1.;
+float tempOilTemp = 0.;
 
 float accelXOffset = 0.35;
 float accelYOffset = 0.35;
@@ -99,6 +103,7 @@ for(;;){
     // Note: The X and Y offsets are such that they match the breadboard facing "forwards in the car". This makes the offsets look reversed here, but it is what it is.
     accelCircles.pushImage(0,0,ACCEL_CIRCLE_SPRITE_W, ACCEL_CIRCLE_SPRITE_H, accelCircles140);
     
+    // Add Sprites smallest to largest to overwrite accordingly 
     accelTracker_3.pushToSprite(&accelCircles , (ACCEL_CIRCLE_SPRITE_W/2 - ACCEL_TRACKER_SPRITE4_W/2) + accelTrackerYOff_3, 
                               (ACCEL_CIRCLE_SPRITE_W/2 - ACCEL_TRACKER_SPRITE4_W/2) + accelTrackerXOff_3 , TFT_BLACK);
     accelTracker_2.pushToSprite(&accelCircles , (ACCEL_CIRCLE_SPRITE_W/2 - ACCEL_TRACKER_SPRITE6_W/2) + accelTrackerYOff_2, 
@@ -110,13 +115,13 @@ for(;;){
     
     accelCircles.pushSprite(ACCEL_CIRCLE_SPRITE_POS_X, ACCEL_CIRCLE_SPRITE_POS_Y);
   
+    // Update the locations of the sprites for next round
     accelTrackerXOff_3 = accelTrackerXOff_2; 
     accelTrackerYOff_3 = accelTrackerYOff_2;
     accelTrackerXOff_2 = accelTrackerXOff_1; 
     accelTrackerYOff_2 = accelTrackerYOff_1;
     accelTrackerXOff_1 = accelTrackerXOff;
     accelTrackerYOff_1 = accelTrackerYOff;
-
   }
 
   // Bunny Display
@@ -188,6 +193,18 @@ for(;;){
     display.print('%');
     cachedFuelLevel = fuelLevel; 
     }
+  
+  if(cachedOilTemp !=  oilTemp){
+    display.fillRect(OIL_RECT_POS_X, OIL_RECT_POS_Y, OIL_RECT_W, OIL_RECT_H, TFT_BLACK);
+    display.setCursor(OIL_RECT_POS_X + 2, OIL_RECT_POS_Y + 4);
+    display.setTextSize(2);
+    display.setTextColor(TFT_LIGHTGREY);
+    display.print(oilTemp);
+    display.setTextSize(1);
+    display.setTextColor(TFT_LIGHTGREY);
+    display.print('o');
+    cachedOilTemp = oilTemp; 
+    }
 
   } // End of core 0 loop code
 }
@@ -221,7 +238,13 @@ void setup(){
   display.print(F("EFR: "));
   display.print(EFR,1);
   display.setTextSize(1);
-  display.print(F("l/h"));   
+  display.print(F("l/h"));  
+
+  //Set up Oil Temp Area
+  oilSprite.createSprite(OIL_SPRITE_W, OIL_SPRITE_H);
+  oilSprite.setSwapBytes(true);
+  oilSprite.pushImage(0,0,OIL_SPRITE_W, OIL_SPRITE_H, oil24);
+  oilSprite.pushSprite(OIL_SPRITE_POS_X,OIL_RECT_POS_Y);
 
   // Set Up Acceleration Tracker and Background sprite (accelCircles)
   accelCircles.createSprite(ACCEL_CIRCLE_SPRITE_W ,ACCEL_CIRCLE_SPRITE_H );
@@ -293,6 +316,11 @@ void setup(){
 
   if(BTLock == 0){
     display.fillScreen(TFT_BLACK); 
+
+    oilSprite.createSprite(OIL_SPRITE_W, OIL_SPRITE_H);
+    oilSprite.setSwapBytes(true); // Change Endian-ness
+    oilSprite.pushImage(0, 0, OIL_SPRITE_W, OIL_SPRITE_H, oil24);
+    oilSprite.pushSprite(OIL_SPRITE_POS_X, OIL_SPRITE_POS_Y); 
 
     batterySprite.createSprite(BOLT_SPRITE_W, BOLT_SPRITE_H);
     batterySprite.setSwapBytes(true); // Change Endian-ness of battery sprite
@@ -402,31 +430,38 @@ void loop() // Use Core 1 to Query the ELM Device
     if (myELM327.nb_rx_state == ELM_SUCCESS){
       EFR = tempEFR;
       Serial.print("EFR: "); Serial.println(EFR);
-      obd_state = state_mph;
+      obd_state = state_oil;
     }
     else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
       Serial.println(F("EFR ERROR"));
+      obd_state = state_oil;
+    }
+    break;
+  }
+
+// ==================== Oil Temp Stuff ===================== //
+  
+  case state_oil:
+  {
+    float tempOilTemp = myELM327.oilTemp();
+    if (myELM327.nb_rx_state == ELM_SUCCESS){
+      oilTemp = (float)tempOilTemp;
+      Serial.print("Oil Temp: "); Serial.println(oilTemp);
+      obd_state = state_mph;
+    }
+    else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
+      myELM327.printError();
       obd_state = state_mph;
     }
     break;
   }
+
 // ==================== Engine RPM Stuff ===================== //  Lets do some red line stuff
 //  uint32_t tempRPM = myELM327.rpm();
 ///
 //  if (myELM327.nb_rx_state == ELM_SUCCESS){
 //   rpm = (uint32_t)tempRPM;
 //    Serial.print("RPM: "); Serial.println(rpm);
-//  }
-//  else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
-//    //myELM327.printError();
-//  }
-
-// ==================== Oil Temp Stuff ===================== //
-//  float tempOilTemp = myELM327.oilTemp();
-// 
-//  if (myELM327.nb_rx_state == ELM_SUCCESS){
-//    oilTemp = (float)tempOilTemp;
-//    Serial.print("Oil Temp: "); Serial.println(oilTemp);
 //  }
 //  else if (myELM327.nb_rx_state != ELM_GETTING_MSG){
 //    //myELM327.printError();

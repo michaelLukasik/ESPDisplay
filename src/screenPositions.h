@@ -73,5 +73,14 @@ const int FUEL_RECT_POS_Y = 30;
 const int FUEL_RECT_W = 75;
 const int FUEL_RECT_H = 30;
 
+const int OIL_SPRITE_POS_X = 2;
+const int OIL_SPRITE_POS_Y = 10;
+const int OIL_SPRITE_W = 24;
+const int OIL_SPRITE_H = 24;
+
+const int OIL_RECT_POS_X = 27;
+const int OIL_RECT_POS_Y = 10;
+const int OIL_RECT_W = 75;
+const int OIL_RECT_H = 30;
 
 #endif
