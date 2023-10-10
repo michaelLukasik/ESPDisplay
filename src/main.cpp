@@ -445,7 +445,7 @@ void loop() // Use Core 1 to Query the ELM Device
   {
     float tempOilTemp = myELM327.oilTemp();
     if (myELM327.nb_rx_state == ELM_SUCCESS){
-      oilTemp = (float)tempOilTemp;
+      oilTemp = (float)tempOilTemp + 40.;  // There is a 40 Degree offset in Oil Temperature measurements
       Serial.print("Oil Temp: "); Serial.println(oilTemp);
       obd_state = state_mph;
     }
